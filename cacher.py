@@ -31,7 +31,7 @@ Last Updated: 02-15-2017
 version = '3.0.4'
 
 
-def cacher(lines, targetDate, friendlyNames):
+def cacher(lines, targetDate, friendlyNames, site_name):
     # Basically run through all the lines a single time and collect all the
     # relevant data to slice, do stats with, etc.
     noClientIdentityLog = []
@@ -141,6 +141,11 @@ def cacher(lines, targetDate, friendlyNames):
     totalbytesserved = []
     totalbytesfromorigin = []
     totalbytesfrompeers = []
+    # custom settings for DOE environment
+    client_requests = []
+    doe_proxy_requests = []
+    lan_ip_addresses = []
+    doe_fwd_proxy_prefix = "153.107."
     for x in lines:
         # If there aren't at least 3 pieces somehow, they'll get filled in
         # with blanks
@@ -285,6 +290,12 @@ def cacher(lines, targetDate, friendlyNames):
                     # pull only pull first value.
                     ip = linesplit[5].split(":")[0]
                     IPLog.append(ip)
+                    # Custom settings for DOE environment
+                    if doe_fwd_proxy_prefix in ip:
+                        doe_proxy_requests.append(ip)
+                    if doe_fwd_proxy_prefix not in ip:
+                        lan_ip_addresses.append(ip)
+                    client_requests.append(ip)
                     #
                     #
                     # End of IP section
@@ -384,6 +395,8 @@ def cacher(lines, targetDate, friendlyNames):
     #
     # Append to a new list. This then allows us to call it whenever we need.
     # We can then put this into the Server Alert, stdout, Slack, etc.
+    finalOutput.append('%s Caching Server Data: %s' % (site_name, targetDate))
+    finalOutput.append('')
     finalOutput.append(
         'Cacher has retrieved the following stats for %s:' % targetDate)
     finalOutput.append('')
@@ -403,15 +416,21 @@ def cacher(lines, targetDate, friendlyNames):
         ' %s of bandwith requested from Apple' % (
             convert_bytes_to_human_readable(totalbytesfromorigin)))
     finalOutput.append(
-        ' %s of bandwith requested from other Caching Servers' % (
+        ' %s of bandwith requested from other Caching Servers (Peers)' % (
             convert_bytes_to_human_readable(totalbytesfrompeers)))
     finalOutput.append('')
 
     # Total Numbers of IP addresses
     finalOutput.append(
-        '%s IP Addresses hit the Caching Server yesterday consisting'
+        '%s requests hit the Caching Server yesterday consisting'
         ' of:' % len(IPLog))
-    finalOutput.append('  %s Unique IP Addresses.' % len(set(IPLog)))
+    finalOutput.append('  %s Unique LAN IP Addresses.' % len(set(lan_ip_addresses)))
+    if len(doe_proxy_requests) > 0:
+        finalOutput.append(
+            '  !! [WARNING] !! Incorrectly configured devices detected!')
+        finalOutput.append(
+            '  %s requests came from a device(s) using a manual proxy setting. '
+            '  This will adversely affect your bandwidth usage.' % len(doe_proxy_requests))
     finalOutput.append('')
 
     # Total Number of iOS devices
@@ -669,14 +688,14 @@ def get_uptime():
         return None
 
 
-def send_serveralert(targetDate, cacherdata):
+def send_serveralert(targetDate, cacherdata, site_name):
     try:
         # Change to a directory to remove shell error
         os.chdir('/private/tmp')
         # Mehhhhhhhhhhhhhh
         cmd = ['/Applications/Server.app/Contents/ServerRoot/usr/sbin/server '
                'postAlert CustomAlert Common subject ' + '"'
-               'Caching Server Data: ' + targetDate + '"' + ' message '
+               + site_name + ' Caching Server Data: ' + targetDate + '"' + ' message '
                '"' + cacherdata + '"<<<""']
         subprocess.check_call(cmd, shell=True)
     except Exception:
@@ -855,6 +874,14 @@ def main():
         slackusername = 'Cacher'
     slackchannel = opts.slackchannel
 
+    # Grab some location information:
+    
+    site_name_cmd = "defaults read /Library/Preferences/com.apple.RemoteDesktop Text1 | awk -F \": \" \'{print $3}\' | awk -F \",\" \'{print $1}\'"
+    site_name_output = subprocess.check_output(site_name_cmd, shell=True)
+    site_name = site_name_output.rstrip('\n')
+    if not site_name:
+        site_name = "UNKNOWN SITE NAME"
+
     # Check if log files exist and if not, bail. Try to delete .DS_Store files
     # just in case they exist from the GUI. Chances are we can delete this
     # because we are either running as root or the same user that created it.
@@ -893,7 +920,7 @@ def main():
     shutil.rmtree(tmpDir)
 
     # Run the function that does most of the work.
-    cacherdata = cacher(rawLog.readlines(), targetDate, friendlyNames)
+    cacherdata = cacher(rawLog.readlines(), targetDate, friendlyNames, site_name)
     # Output conditionals
     if stdOut:
         print("\n".join(cacherdata))
@@ -903,7 +930,7 @@ def main():
         if os.getuid() != 0:
             print 'Did not send serverAlert - requires root'
         else:
-            send_serveralert(targetDate, "\n".join(cacherdata))
+            send_serveralert(targetDate, "\n".join(cacherdata), site_name)
     if slackalert is True:
         post_to_slack(targetDate, "\n".join(cacherdata), slackchannel,
                       slackusername, slackwebhook)
