@@ -764,7 +764,7 @@ def post_to_slack(targetDate, cacherdata, slackchannel, slackusername,
 
 def main():
     # Check for macOS Server 5.2 or higher. Use LooseVersion just in case.
-    if LooseVersion(get_serverversion()) >= LooseVersion('5.2'):
+    if LooseVersion(get_serverversion()) >= LooseVersion('5.1'):
         pass
     else:
         print "Server version is %s and not compatible" % get_serverversion()
