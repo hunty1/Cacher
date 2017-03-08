@@ -28,7 +28,7 @@ https://github.com/erikng/scripts/tree/master/APInfo
 Author: Erik Gomez
 Last Updated: 02-15-2017
 """
-version = '3.0.4'
+version = '3.0.5'
 
 
 def cacher(lines, targetDate, friendlyNames, site_name):
@@ -321,10 +321,23 @@ def cacher(lines, targetDate, friendlyNames, site_name):
                     # both osFamily (Ex: macOS) and osVersion (Ex: 10.12.2).
                     osFamily = re.match(
                         r'.+? ((iOS|Darwin|OS X)[/ ](([0-9]+\.?){1,}))',
-                        x).group(1).replace('OS X ', 'macOS/').split('/')[0]
+                        x)
+                    if osFamily is not None:
+                        osFamily = osFamily.group(1).replace(
+                            'OS X ', 'macOS/').split('/')[0]
+
                     osVersion = re.match(
                         r'.+? ((iOS|Darwin|OS X)[/ ](([0-9]+\.?){1,}))',
-                        x).group(1).replace('OS X ', 'macOS/').split('/')[1]
+                        x)
+                    if osVersion is not None:
+                        osVersion = osVersion.group(1).replace(
+                            'OS X ', 'macOS/').split('/')[1]
+
+                    configurator = re.match(
+                        r'.+?((Configurator)[/ ](([0-9]+\.?){1,}))',
+                        x)
+                    if configurator is not None:
+                        configurator = configurator.group(1).split('/')[0]
                     # If 'Darwin' in the name, replace to 'macOS' so our future
                     # counts will be accurate.
                     if osFamily == 'Darwin':
@@ -333,9 +346,10 @@ def cacher(lines, targetDate, friendlyNames, site_name):
                     # osVersion is equal to the key (Ex: 16.3.0) replace it
                     # with its value (Ex: 10.12.2). This is also a fix for the
                     # count. Yay for coding in a bubble!
-                    for k, v in friendlyDarwin.items():
-                        if k == osVersion:
-                            osVersion = v
+                    if osVersion is not None:
+                        for k, v in friendlyDarwin.items():
+                            if k == osVersion:
+                                osVersion = v
 
                     # The iOS family is more fun, in that Caching Server logs
                     # the model identifier.
@@ -350,9 +364,11 @@ def cacher(lines, targetDate, friendlyNames, site_name):
                         iOSModelLog.append((osVersion, iOSModel.group(1)))
                         iOSModelOnlyLog.append(iOSModel.group(1))
                         OSLog.append((osVersion, osFamily))
-                    else:
+                    elif osFamily == 'macOS':
                         # Write the osVersion/osFamily data to OSLog.
                         OSLog.append((osVersion, osFamily))
+                    elif configurator == 'Configurator':
+                        AC2Log.append(configurator)
 
                     # if 'model/AppleTV' in logmsg:
                     # I think I still need to do this section but I can't
@@ -545,7 +561,7 @@ def cacher(lines, targetDate, friendlyNames, site_name):
             macOSFamilyLog.append(
                 '%s/%s' % (osfamily + ' ' + osversion, numberofVersions))
             macOSDeviceNumber.append(numberofVersions)
-        else:
+        elif osfamily == 'iOS':
             iOSFamilyLog.append(
                 '%s/%s' % (osfamily + ' ' + osversion, numberofVersions))
             iOSDeviceNumber.append(numberofVersions)
@@ -574,7 +590,7 @@ def cacher(lines, targetDate, friendlyNames, site_name):
     # the secondary line I had in the shell version.
     if len(AC2Log) > 0:
         finalOutput.append(
-            'A total of %s Applications were downloaded from Apple'
+            'A total of %s files were requested from Apple'
             ' Configurator 2 devices' % len(AC2Log))
         finalOutput.append('')
 
