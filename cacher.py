@@ -28,9 +28,10 @@ Slack section adapted from another one of my tools (APInfo).
 https://github.com/erikng/scripts/tree/master/APInfo
 
 Author: Erik Gomez
-Last Updated: 02-15-2017
+Contributor: Calum Hunter
+Last Updated: 31-Mar-2017
 """
-version = '3.0.5'
+version = '3.0.6'
 
 
 def cacher(lines, targetDate, friendlyNames, site_name, measurement):
@@ -63,6 +64,7 @@ def cacher(lines, targetDate, friendlyNames, site_name, measurement):
     # the macOS version (for the alert), while dynamically looping through the
     # logs.
     friendlyDarwin = {
+        '16.5.0': '10.12.4',
         '16.4.0': '10.12.3',
         '16.3.0': '10.12.2',
         '16.1.0': '10.12.1',
@@ -137,6 +139,8 @@ def cacher(lines, targetDate, friendlyNames, site_name, measurement):
         'iPad6,4': 'iPad Pro 9.7 Inch 1st Generation [Wifi + Cellular]',
         'iPad6,7': 'iPad Pro 12.9 Inch 1st Generation [Wifi]',
         'iPad6,8': 'iPad Pro 12.9 Inch 1st Generation [Wifi + Cellular]',
+        'iPad6,11': 'iPad 5th Generation [Wifi]',
+        'iPad6,12': 'iPad 5th Generation [Wifi + Cellular]',
         'iPod5,1': 'iPod Touch 5th Generation',
         'iPod7,1': 'iPod Touch 6th Generation'
     }
