@@ -27,11 +27,12 @@ or send to a slack channel.
 Slack section adapted from another one of my tools (APInfo).
 https://github.com/erikng/scripts/tree/master/APInfo
 
-Author: Erik Gomez
-Contributor: Calum Hunter
-Last Updated: 31-Mar-2017
+Original Author: Erik Gomez
+Contributor and maintainer of this fork: Calum Hunter
+Last Updated: 11-April-2017
+Modified for use in DOE environment by Calum Hunter
 """
-version = '3.0.6'
+version = '3.0.7'
 
 
 def cacher(lines, targetDate, friendlyNames, site_name, measurement):
@@ -465,6 +466,15 @@ def cacher(lines, targetDate, friendlyNames, site_name, measurement):
             # except:
                 # print x
                 # raise Exception("Funky line - check it out")
+    # Add up our bytes from each store from our list to get a total
+    totalbytesserved = sum(map(int, totalbytesserved))
+    totalbytesfromorigin = sum(map(int, totalbytesfromorigin))
+    totalbytesfrompeers = sum(map(int, totalbytesfrompeers))
+    # Bail here since there aren't any bandwidth stats.
+    if not totalbytesserved:
+        finalOutput.append(
+            'Cacher did not retrieve any stats for %s' % targetDate)
+        return finalOutput
     # Beginning of the final output.
     #
     #
@@ -475,15 +485,6 @@ def cacher(lines, targetDate, friendlyNames, site_name, measurement):
     finalOutput.append(
         'Cacher has retrieved the following stats for %s:' % targetDate)
     finalOutput.append('')
-    # Add up our bytes from each store from our list to get a total
-    totalbytesserved = sum(map(int, totalbytesserved))
-    totalbytesfromorigin = sum(map(int, totalbytesfromorigin))
-    totalbytesfrompeers = sum(map(int, totalbytesfrompeers))
-    # Bail here since there aren't any bandwidth stats.
-    if not totalbytesserved:
-        print 'Cacher did not retrieve any stats for %s' % targetDate
-        sys.exit(1)
-
     finalOutput.append(
         '%s of bandwith served to client devices.' % (
             convert_bytes_to_human_readable(totalbytesserved)))
